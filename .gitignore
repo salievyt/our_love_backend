@@ -1,0 +1,31 @@
+# Django
+*.pyc
+__pycache__/
+*.pyo
+.env
+db.sqlite3
+media/
+static/
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml

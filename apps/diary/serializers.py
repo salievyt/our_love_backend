@@ -1,0 +1,41 @@
+from rest_framework import serializers
+
+from apps.diary.models import DiaryEntry
+
+
+class DiaryEntrySerializer(serializers.ModelSerializer):
+    photo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DiaryEntry
+        fields = (
+            "id",
+            "date",
+            "note",
+            "photo",
+            "photo_url",
+            "mood_partner1",
+            "mood_partner2",
+            "question_answer_partner1",
+            "question_answer_partner2",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def get_photo_url(self, obj):
+        if obj.photo:
+            return obj.photo.url
+        return None
+
+
+class DiaryEntryCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DiaryEntry
+        fields = ("date", "note", "photo", "mood_partner1")
+
+    def create(self, validated_data):
+        date = validated_data.get("date")
+        if DiaryEntry.objects.filter(date=date).exists():
+            raise serializers.ValidationError({"date": "Запись на этот день уже существует"})
+        return super().create(validated_data)
