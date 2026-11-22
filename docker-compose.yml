@@ -77,6 +77,12 @@ services:
       - DB_HOST=db
       - DB_PORT=5432
       - PORT=8080
+      - MEDIA_ROOT=/app/media
+    # Тот же том, что у Django: Go сохраняет загрузки, Django их раздаёт.
+    # Go работает как nonroot (65532) — каталог places/ должен быть ему доступен
+    # на запись (см. go/README.md, «Загрузки»).
+    volumes:
+      - media_volume:/app/media
     expose:
       - "8080"
     depends_on:
