@@ -16,14 +16,27 @@ class QuestionTemplate(models.Model):
 
 class QuestionOfTheDay(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    relationship = models.ForeignKey(
+        "accounts.Relationship",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="questions",
+    )
     question = models.TextField()
-    date_assigned = models.DateField(unique=True)
+    date_assigned = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Вопрос дня"
         verbose_name_plural = "Вопросы дня"
         ordering = ("-date_assigned",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("relationship", "date_assigned"),
+                name="question_unique_relationship_date",
+            )
+        ]
 
     def __str__(self):
         return f"Вопрос от {self.date_assigned}: {self.question[:30]}"
