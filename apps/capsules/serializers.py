@@ -1,3 +1,4 @@
+from django.utils.timezone import now
 from rest_framework import serializers
 
 from apps.capsules.models import TimeCapsule
@@ -28,6 +29,16 @@ class TimeCapsuleSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "is_opened", "is_ready_to_open", "opened_at", "created_at")
 
+    # Содержимое запечатанной капсулы не отдаётся никому, включая автора
+    SEALED_FIELDS = ("message", "photo", "photo_url", "voice_note", "voice_note_url")
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if not obj.is_opened:
+            for field in self.SEALED_FIELDS:
+                data[field] = None
+        return data
+
     def get_photo_url(self, obj):
         if obj.photo:
             return obj.photo.url
@@ -49,6 +60,11 @@ class TimeCapsuleCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeCapsule
         fields = ("title", "message", "photo", "voice_note", "open_date")
+
+    def validate_open_date(self, value):
+        if value <= now().date():
+            raise serializers.ValidationError("Дата открытия должна быть в будущем")
+        return value
 
     def create(self, validated_data):
         validated_data["created_by"] = self.context["request"].user
