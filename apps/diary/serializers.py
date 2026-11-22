@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from config.media import file_url
+
 from apps.diary.models import DiaryEntry
 
 
@@ -41,9 +43,7 @@ class DiaryEntrySerializer(serializers.ModelSerializer):
         return value
 
     def get_photo_url(self, obj):
-        if obj.photo:
-            return obj.photo.url
-        return None
+        return file_url(obj.photo, self.context)
 
 
 class DiaryEntryCreateSerializer(serializers.ModelSerializer):

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from config.media import file_url
+
 from apps.places.models import Place
 
 
@@ -22,9 +24,7 @@ class PlaceSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at")
 
     def get_photo_url(self, obj):
-        if obj.photo:
-            return obj.photo.url
-        return None
+        return file_url(obj.photo, self.context)
 
 
 class PlaceCreateSerializer(serializers.ModelSerializer):

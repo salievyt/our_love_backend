@@ -64,7 +64,7 @@ class TimeCapsuleOpenView(generics.CreateAPIView):
         capsule.is_opened = True
         capsule.opened_at = now()
         capsule.save(update_fields=["is_opened", "opened_at"])
-        return Response(TimeCapsuleSerializer(capsule).data)
+        return Response(TimeCapsuleSerializer(capsule, context=self.get_serializer_context()).data)
 
 
 class ActiveTimeCapsuleListView(generics.ListAPIView):

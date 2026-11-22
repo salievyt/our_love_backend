@@ -103,7 +103,10 @@ def generate_task_view(request):
         )
 
     task = create_task_from_template(relationship, today)
-    return Response(DailyTaskSerializer(task).data, status=status.HTTP_201_CREATED)
+    return Response(
+        DailyTaskSerializer(task, context={"request": request}).data,
+        status=status.HTTP_201_CREATED,
+    )
 
 
 class TaskTemplateListView(generics.ListAPIView):

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from config.media import file_url
+
 from apps.tasks.models import DailyTask, TaskTemplate
 
 
@@ -30,6 +32,4 @@ class DailyTaskSerializer(serializers.ModelSerializer):
         extra_kwargs = {"date_assigned": {"required": False}}
 
     def get_photo_url(self, obj):
-        if obj.photo:
-            return obj.photo.url
-        return None
+        return file_url(obj.photo, self.context)

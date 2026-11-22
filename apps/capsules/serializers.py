@@ -1,6 +1,8 @@
 from django.utils.timezone import now
 from rest_framework import serializers
 
+from config.media import file_url
+
 from apps.capsules.models import TimeCapsule
 
 
@@ -40,14 +42,10 @@ class TimeCapsuleSerializer(serializers.ModelSerializer):
         return data
 
     def get_photo_url(self, obj):
-        if obj.photo:
-            return obj.photo.url
-        return None
+        return file_url(obj.photo, self.context)
 
     def get_voice_note_url(self, obj):
-        if obj.voice_note:
-            return obj.voice_note.url
-        return None
+        return file_url(obj.voice_note, self.context)
 
     def get_days_until_open(self, obj):
         from django.utils.timezone import now

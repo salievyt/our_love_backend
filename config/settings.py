@@ -199,9 +199,9 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "Europe/Moscow"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-# S3 Storage
+# File storage
+# Django 5.1+ читает только STORAGES (DEFAULT_FILE_STORAGE удалён и молча игнорировался)
 if env("AWS_ACCESS_KEY_ID", default=None):
-    DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME")
@@ -211,8 +211,18 @@ if env("AWS_ACCESS_KEY_ID", default=None):
     AWS_DEFAULT_ACL = "private"
     AWS_QUERYSTRING_AUTH = True
     AWS_QUERYSTRING_EXPIRE = 3600
+    _default_storage = "storages.backends.s3boto3.S3Boto3Storage"
 else:
-    DEFAULT_FILE_STORAGE = "django.core.files.storage.FileSystemStorage"
+    # Локальные файлы раздаются только по подписанным ссылкам (config/media.py)
+    _default_storage = "config.media.SignedFileSystemStorage"
+
+STORAGES = {
+    "default": {"BACKEND": _default_storage},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
+# Лимит размера тела запроса, который Django держит в памяти (файлы крупнее уходят во временные)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 # Email
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

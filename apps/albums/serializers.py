@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from config.media import file_url
+
 from apps.albums.models import Collage, Photo
 
 
@@ -23,9 +25,7 @@ class PhotoSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "created_at", "year_tag")
 
     def get_image_url(self, obj):
-        if obj.image:
-            return obj.image.url
-        return None
+        return file_url(obj.image, self.context)
 
 
 class CollageSerializer(serializers.ModelSerializer):
