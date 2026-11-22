@@ -79,3 +79,28 @@ class InviteFlowTests(PairTestCase):
         self.login(self.alice)  # уже в паре
         self.assertEqual(self.client.post("/api/v1/auth/invite/accept/", {"invite_code": code}).status_code, 400)
         self.assertEqual(Relationship.objects.filter(partner1=self.eve).count(), 0)
+
+
+class PasswordAndThrottleTests(PairTestCase):
+    def test_weak_passwords_rejected(self):
+        for password in ("12345678", "password1", "qwertyuiop", "sweetheart"):
+            r = self.client.post("/api/v1/auth/register/", {"username": "sweetheart", "password": password}, format="json")
+            self.assertEqual(r.status_code, 400, password)
+            self.assertIn("password", r.data)
+
+    def login_attempt(self, client_ip):
+        # Так запрос приходит через nginx: X-Forwarded-For = $remote_addr клиента
+        return self.client.post(
+            "/api/v1/auth/login/",
+            {"username": "target", "password": "wrong"},
+            format="json",
+            HTTP_X_FORWARDED_FOR=client_ip,
+            REMOTE_ADDR="172.18.0.5",  # адрес nginx внутри сети compose
+        ).status_code
+
+    def test_login_is_throttled_per_client_ip(self):
+        User.objects.create_user("target", password=STRONG)
+        codes = [self.login_attempt("203.0.113.7") for _ in range(6)]
+        self.assertEqual(codes, [401] * 5 + [429])
+        # Другой клиент за тем же nginx не заблокирован
+        self.assertEqual(self.login_attempt("198.51.100.20"), 401)

@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from apps.accounts.models import GENDER_CHOICES, InviteCode, PartnerLike, PartnerProfile, Relationship
@@ -20,6 +21,15 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("username", "email", "password", "first_name", "last_name", "invite_code")
+
+    def validate(self, attrs):
+        # Полный набор валидаторов Django, включая похожесть на логин и словарь частых паролей
+        candidate = User(**{k: v for k, v in attrs.items() if k not in ("password", "invite_code")})
+        try:
+            validate_password(attrs["password"], user=candidate)
+        except Exception as exc:  # django.core.exceptions.ValidationError
+            raise serializers.ValidationError({"password": list(exc.messages)})
+        return attrs
 
     def create(self, validated_data):
         validated_data.pop("invite_code", None)

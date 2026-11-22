@@ -117,7 +117,9 @@ CACHES = {
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
@@ -177,7 +179,13 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {
         "anon": "100/day",
         "user": "1000/hour",
+        # Подбор пароля и invite-кодов
+        "login": "5/min",
+        "register": "10/hour",
+        "invite": "10/hour",
     },
+    # Перед Django стоит один прокси (nginx): IP клиента — последний адрес в X-Forwarded-For
+    "NUM_PROXIES": 1,
 }
 
 # JWT

@@ -1,15 +1,28 @@
 """Общие фикстуры для тестов видимости данных пары."""
 from datetime import date
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.core.cache.backends.locmem import LocMemCache
 from rest_framework.test import APITestCase
+from rest_framework.throttling import SimpleRateThrottle
 
 from apps.accounts.models import Relationship
 
 User = get_user_model()
 
 
-class PairTestCase(APITestCase):
+class IsolatedThrottleMixin:
+    """Лимиты запросов считаются в отдельном кэше на каждый тест, а не в общем Redis."""
+
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(SimpleRateThrottle, "cache", LocMemCache(f"throttle-{id(self)}", {}))
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+
+class PairTestCase(IsolatedThrottleMixin, APITestCase):
     """alice + bob — пара; carol + dave — другая пара; eve — без пары."""
 
     @classmethod

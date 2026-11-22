@@ -3,6 +3,8 @@ from django.db import transaction
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from apps.accounts.invites import accept_invite, issue_invite
 
@@ -24,10 +26,19 @@ from apps.accounts.serializers import (
 User = get_user_model()
 
 
+class LoginView(TokenObtainPairView):
+    """Вход по логину и паролю; не больше 5 попыток в минуту с одного IP."""
+
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "login"
+
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
     serializer_class = RegisterSerializer
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "register"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -74,6 +85,8 @@ class AcceptInviteCodeView(generics.CreateAPIView):
     """Для уже зарегистрированного пользователя: создать пару по коду партнёра."""
 
     serializer_class = InviteCodeAcceptSerializer
+    throttle_classes = (ScopedRateThrottle,)
+    throttle_scope = "invite"
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

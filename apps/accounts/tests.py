@@ -3,11 +3,14 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
+from apps.accounts.testing import IsolatedThrottleMixin
+
 User = get_user_model()
 
 
-class AuthTests(TestCase):
+class AuthTests(IsolatedThrottleMixin, TestCase):
     def setUp(self):
+        super().setUp()
         self.client = APIClient()
         self.register_url = "/api/v1/auth/register/"
         self.login_url = "/api/v1/auth/login/"
@@ -17,7 +20,7 @@ class AuthTests(TestCase):
         data = {
             "username": "testuser",
             "email": "test@example.com",
-            "password": "testpass123",
+            "password": "velvet-orbit-42",
             "first_name": "Test",
             "last_name": "User",
         }
