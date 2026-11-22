@@ -18,6 +18,13 @@ class TaskTemplate(models.Model):
 
 class DailyTask(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    relationship = models.ForeignKey(
+        "accounts.Relationship",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="tasks",
+    )
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     emoji = models.CharField(max_length=10, default="🎯")

@@ -27,6 +27,7 @@ class DailyTaskSerializer(serializers.ModelSerializer):
             "created_at",
         )
         read_only_fields = ("id", "created_at")
+        extra_kwargs = {"date_assigned": {"required": False}}
 
     def get_photo_url(self, obj):
         if obj.photo:
