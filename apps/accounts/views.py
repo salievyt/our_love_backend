@@ -1,12 +1,16 @@
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+
+from apps.accounts.invites import accept_invite, issue_invite
 
 from django.db.models import Q
 
 from apps.accounts.models import InviteCode, PartnerLike, PartnerProfile, Relationship
 from apps.accounts.serializers import (
+    InviteCodeAcceptSerializer,
     InviteCodeGenerateSerializer,
     InviteCodeSerializer,
     PartnerLikeSerializer,
@@ -28,25 +32,13 @@ class RegisterView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
+        code = serializer.validated_data.get("invite_code")
 
-        invite_code_str = request.data.get("invite_code")
-        if invite_code_str:
-            try:
-                invite = InviteCode.objects.get(
-                    code=invite_code_str, is_used=False, expires_at__gte=user.date_joined
-                )
-                invite.is_used = True
-                invite.save()
-                Relationship.objects.create(
-                    partner1=invite.created_by,
-                    partner2=user,
-                    relationship_start_date=invite.relationship.relationship_start_date,
-                    partner1_name=invite.relationship.partner1_name,
-                    partner2_name=invite.relationship.partner2_name,
-                )
-            except InviteCode.DoesNotExist:
-                pass
+        # Пользователь и пара создаются вместе: при неверном коде не остаётся ни того, ни другого
+        with transaction.atomic():
+            user = serializer.save()
+            if code:
+                accept_invite(user, code)
 
         return Response(
             UserSerializer(user).data,
@@ -74,33 +66,21 @@ class GenerateInviteCodeView(generics.CreateAPIView):
     serializer_class = InviteCodeGenerateSerializer
 
     def create(self, request, *args, **kwargs):
-        relationship = getattr(
-            request.user, "relationship_as_partner1", None
-        ) or getattr(request.user, "relationship_as_partner2", None)
+        invite = issue_invite(request.user)
+        return Response(InviteCodeSerializer(invite).data, status=status.HTTP_201_CREATED)
 
-        if not relationship:
-            return Response(
-                {"detail": "У вас нет пары. Создайте отношения."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
-        import secrets
-        from datetime import timedelta
+class AcceptInviteCodeView(generics.CreateAPIView):
+    """Для уже зарегистрированного пользователя: создать пару по коду партнёра."""
 
-        from django.utils.timezone import now
+    serializer_class = InviteCodeAcceptSerializer
 
-        code = secrets.token_hex(4).upper()
-        invite = InviteCode.objects.create(
-            relationship=relationship,
-            code=code,
-            created_by=request.user,
-            expires_at=now() + timedelta(days=7),
-        )
-
-        return Response(
-            InviteCodeSerializer(invite).data,
-            status=status.HTTP_201_CREATED,
-        )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            relationship = accept_invite(request.user, serializer.validated_data["invite_code"])
+        return Response(RelationshipSerializer(relationship).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(["GET"])

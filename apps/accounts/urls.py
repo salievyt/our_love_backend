@@ -15,6 +15,7 @@ urlpatterns = [
     # Relationship
     path("relationship/", views.RelationshipDetailView.as_view(), name="relationship"),
     path("invite/generate/", views.GenerateInviteCodeView.as_view(), name="generate_invite"),
+    path("invite/accept/", views.AcceptInviteCodeView.as_view(), name="accept_invite"),
     # Partner Search (Tinder-like)
     path("partner/profile/", views.PartnerProfileView.as_view(), name="partner_profile"),
     path("partner/profile/create/", views.PartnerProfileCreateView.as_view(), name="partner_profile_create"),

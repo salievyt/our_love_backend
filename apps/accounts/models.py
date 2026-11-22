@@ -56,10 +56,11 @@ class Relationship(models.Model):
 
 class InviteCode(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # Заполняется, когда по коду создана пара
     relationship = models.ForeignKey(
-        Relationship, on_delete=models.CASCADE, related_name="invite_codes"
+        Relationship, on_delete=models.CASCADE, related_name="invite_codes", null=True, blank=True
     )
-    code = models.CharField(max_length=8, unique=True)
+    code = models.CharField(max_length=16, unique=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE)
     is_used = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

@@ -64,6 +64,10 @@ class InviteCodeGenerateSerializer(serializers.Serializer):
     pass
 
 
+class InviteCodeAcceptSerializer(serializers.Serializer):
+    invite_code = serializers.CharField(max_length=32)
+
+
 class PartnerProfileSerializer(serializers.ModelSerializer):
     age = serializers.IntegerField(read_only=True)
 
