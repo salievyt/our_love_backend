@@ -1,6 +1,8 @@
 package httpx
 
 import (
+	"bytes"
+	"mime/multipart"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -66,6 +68,46 @@ func TestPayloadJSONAndForm(t *testing.T) {
 		if _, err := DecodePayload(r); err == nil {
 			t.Fatalf("body %q accepted", body)
 		}
+	}
+}
+
+func TestPayloadFile(t *testing.T) {
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	mw.WriteField("title", "Парк")
+	mw.WriteField("cleared", "")
+	fw, _ := mw.CreateFormFile("photo", "photo.jpg")
+	fw.Write([]byte("data"))
+	mw.Close()
+	r := httptest.NewRequest("POST", "/", &body)
+	r.Header.Set("Content-Type", mw.FormDataContentType())
+	p, err := DecodePayload(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fh, ok := p.File("photo"); !ok || fh == nil || fh.Filename != "photo.jpg" || !p.Has("photo") {
+		t.Fatalf("photo = %v %v", fh, ok)
+	}
+	if fh, ok := p.File("cleared"); !ok || fh != nil {
+		t.Fatal(`"" in a form must clear the file`)
+	}
+	if _, ok := p.File("missing"); ok {
+		t.Fatal("missing file reported as present")
+	}
+	if fh, ok := p.File("title"); ok || fh != nil || len(p.Errors["title"]) != 1 {
+		t.Fatalf("text value accepted as file: %v", p.Errors)
+	}
+
+	r = httptest.NewRequest("PATCH", "/", strings.NewReader(`{"photo": null, "other": "x"}`))
+	r.Header.Set("Content-Type", "application/json")
+	if p, err = DecodePayload(r); err != nil {
+		t.Fatal(err)
+	}
+	if fh, ok := p.File("photo"); !ok || fh != nil {
+		t.Fatal("null must clear the file")
+	}
+	if _, ok := p.File("other"); ok || len(p.Errors["other"]) != 1 {
+		t.Fatal("string accepted as file")
 	}
 }
 

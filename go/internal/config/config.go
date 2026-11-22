@@ -16,6 +16,8 @@ type Config struct {
 	DatabaseURL string
 	Addr        string
 	Location    *time.Location
+	// MediaRoot — каталог загрузок, общий том с Django (MEDIA_ROOT).
+	MediaRoot string
 }
 
 func Load() (Config, error) {
@@ -50,6 +52,7 @@ func Load() (Config, error) {
 		DatabaseURL: dsn,
 		Addr:        ":" + env("PORT", "8080"),
 		Location:    loc,
+		MediaRoot:   env("MEDIA_ROOT", "/app/media"),
 	}, nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime"
+	"mime/multipart"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,11 +15,18 @@ import (
 	"unicode/utf8"
 )
 
-const maxBody = 1 << 20
+const (
+	maxBody = 1 << 20
+	// maxMultipart — весь multipart-запрос с файлами (client_max_body_size в nginx).
+	// Файлы крупнее maxBody ParseMultipartForm пишет во временные файлы,
+	// net/http удаляет их после ответа.
+	maxMultipart = 50 << 20
+)
 
 // Payload — тело запроса в JSON, form-urlencoded или multipart (как парсеры DRF).
 type Payload struct {
 	values map[string]any
+	files  map[string][]*multipart.FileHeader
 	Errors FieldErrors
 }
 
@@ -46,12 +54,14 @@ func DecodePayload(r *http.Request) (*Payload, error) {
 		}
 		p.values = obj
 	case "multipart/form-data":
+		r.Body = http.MaxBytesReader(nil, r.Body, maxMultipart)
 		if err := r.ParseMultipartForm(maxBody); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("Multipart form parse error - %v", err)
 		}
 		for k, v := range r.MultipartForm.Value {
 			p.values[k] = v[0]
 		}
+		p.files = r.MultipartForm.File
 	case "application/x-www-form-urlencoded":
 		r.Body = http.MaxBytesReader(nil, r.Body, maxBody)
 		if err := r.ParseForm(); err != nil {
@@ -72,7 +82,30 @@ func DecodePayload(r *http.Request) (*Payload, error) {
 // BadRequest пишет ошибку разбора тела.
 func BadRequest(w http.ResponseWriter, err error) { Error(w, http.StatusBadRequest, err.Error()) }
 
-func (p *Payload) Has(key string) bool { _, ok := p.values[key]; return ok }
+func (p *Payload) Has(key string) bool {
+	_, ok := p.values[key]
+	_, file := p.files[key]
+	return ok || file
+}
+
+// File читает поле-файл (FileField/ImageField с null=True, blank=True).
+// present=false — поля нет в запросе (или ошибка в p.Errors);
+// present=true и fh=nil — файл явно очищают: null в JSON или пустая строка в форме
+// (DRF превращает "" в None при allow_null).
+func (p *Payload) File(key string) (fh *multipart.FileHeader, present bool) {
+	if fs := p.files[key]; len(fs) > 0 {
+		return fs[0], true
+	}
+	v, ok := p.values[key]
+	if !ok {
+		return nil, false
+	}
+	if v == nil || v == "" {
+		return nil, true
+	}
+	p.Errors.Add(key, "Загруженный файл не является корректным файлом.")
+	return nil, false
+}
 
 // lookup возвращает значение; для обязательного отсутствующего поля пишет ошибку.
 func (p *Payload) lookup(key string, required bool) (any, bool) {
