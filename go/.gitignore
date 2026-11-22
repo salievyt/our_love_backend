@@ -1,1 +1,3 @@
 bin/
+# корневой .gitignore исключает media/ (файлы Django), а это Go-пакет
+!/internal/media/

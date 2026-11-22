@@ -57,6 +57,9 @@ func pageURL(r *http.Request, page int) string {
 	return u.String()
 }
 
+// BaseURL — "схема://хост" запроса, как request.build_absolute_uri("/")[:-1] в Django.
+func BaseURL(r *http.Request) string { return scheme(r) + "://" + host(r) }
+
 // Как Django с USE_X_FORWARDED_HOST и SECURE_PROXY_SSL_HEADER: доверяем заголовкам nginx.
 func scheme(r *http.Request) string {
 	if p := r.Header.Get("X-Forwarded-Proto"); p == "https" {
