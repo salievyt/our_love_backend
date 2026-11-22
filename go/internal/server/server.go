@@ -20,6 +20,8 @@ type Deps struct {
 	SecretKey string
 	Location  *time.Location
 	MediaRoot string // загрузки, общий с Django том MEDIA_ROOT
+	// MediaAccel — за nginx: файлы отдаёт nginx по X-Accel-Redirect
+	MediaAccel bool
 }
 
 func New(d Deps) http.Handler {
@@ -40,6 +42,9 @@ func New(d Deps) http.Handler {
 		DB: d.DB, Loc: d.Location,
 		Signer: media.NewSigner(d.SecretKey), Store: media.Storage{Root: d.MediaRoot},
 	}).Register(mux, authed)
+
+	signer := media.NewSigner(d.SecretKey)
+	mux.Handle("GET /media/{path...}", &media.Server{Signer: signer, Root: d.MediaRoot, Accel: d.MediaAccel})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { httpx.NotFound(w) })
 	return recoverer(logRequests(mux))

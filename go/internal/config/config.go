@@ -18,6 +18,8 @@ type Config struct {
 	Location    *time.Location
 	// MediaRoot — каталог загрузок, общий том с Django (MEDIA_ROOT).
 	MediaRoot string
+	// MediaAccel — файлы отдаёт nginx через X-Accel-Redirect (MEDIA_ACCEL=1 в docker-compose).
+	MediaAccel bool
 }
 
 func Load() (Config, error) {
@@ -53,6 +55,7 @@ func Load() (Config, error) {
 		Addr:        ":" + env("PORT", "8080"),
 		Location:    loc,
 		MediaRoot:   env("MEDIA_ROOT", "/app/media"),
+		MediaAccel:  os.Getenv("MEDIA_ACCEL") == "1",
 	}, nil
 }
 

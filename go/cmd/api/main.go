@@ -44,7 +44,7 @@ func run() error {
 	}
 	defer conn.Close()
 
-	deps := server.Deps{DB: conn, SecretKey: cfg.SecretKey, Location: cfg.Location, MediaRoot: cfg.MediaRoot}
+	deps := server.Deps{DB: conn, SecretKey: cfg.SecretKey, Location: cfg.Location, MediaRoot: cfg.MediaRoot, MediaAccel: cfg.MediaAccel}
 	srv := &http.Server{
 		Addr:              cfg.Addr,
 		Handler:           server.New(deps),
