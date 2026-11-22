@@ -65,6 +65,26 @@ services:
              python manage.py init_daily_tasks &&
              gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 --timeout 120"
 
+  # Go-версия API: обслуживает перенесённые разделы (см. go/README.md)
+  api-go:
+    build:
+      context: ./go
+    environment:
+      - SECRET_KEY=${SECRET_KEY:?Задайте SECRET_KEY в .env}
+      - DB_NAME=${DB_NAME:-outlove}
+      - DB_USER=${DB_USER:-outlove}
+      - DB_PASSWORD=${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - PORT=8080
+    expose:
+      - "8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started  # схему создают миграции Django в сервисе api
+
   celery_worker:
     build:
       context: .
