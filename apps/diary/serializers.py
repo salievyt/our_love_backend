@@ -21,7 +21,24 @@ class DiaryEntrySerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "question_answer_partner1",
+            "question_answer_partner2",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate_date(self, value):
+        entry = self.instance
+        if (
+            entry is not None
+            and DiaryEntry.objects.filter(relationship=entry.relationship, date=value)
+            .exclude(pk=entry.pk)
+            .exists()
+        ):
+            raise serializers.ValidationError("Запись на этот день уже существует")
+        return value
 
     def get_photo_url(self, obj):
         if obj.photo:
@@ -35,7 +52,8 @@ class DiaryEntryCreateSerializer(serializers.ModelSerializer):
         fields = ("date", "note", "photo", "mood_partner1")
 
     def create(self, validated_data):
-        date = validated_data.get("date")
-        if DiaryEntry.objects.filter(date=date).exists():
+        if DiaryEntry.objects.filter(
+            relationship=validated_data["relationship"], date=validated_data.get("date")
+        ).exists():
             raise serializers.ValidationError({"date": "Запись на этот день уже существует"})
         return super().create(validated_data)

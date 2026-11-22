@@ -5,7 +5,14 @@ from django.db import models
 
 class DiaryEntry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    date = models.DateField(unique=True)
+    relationship = models.ForeignKey(
+        "accounts.Relationship",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="diary_entries",
+    )
+    date = models.DateField()
     note = models.TextField(blank=True)
     photo = models.ImageField(upload_to="diary/", null=True, blank=True)
     mood_partner1 = models.IntegerField(null=True, blank=True)
@@ -31,6 +38,11 @@ class DiaryEntry(models.Model):
         verbose_name = "Запись дневника"
         verbose_name_plural = "Записи дневника"
         ordering = ("-date",)
+        constraints = [
+            models.UniqueConstraint(
+                fields=("relationship", "date"), name="diary_unique_relationship_date"
+            )
+        ]
 
     def __str__(self):
         return f"Дневник от {self.date}"
