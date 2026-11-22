@@ -9,6 +9,7 @@ import (
 
 	"github.com/salievyt/our_love_backend/go/internal/auth"
 	"github.com/salievyt/our_love_backend/go/internal/httpx"
+	"github.com/salievyt/our_love_backend/go/internal/moods"
 )
 
 type Deps struct {
@@ -20,7 +21,6 @@ type Deps struct {
 func New(d Deps) http.Handler {
 	mux := http.NewServeMux()
 	authed := func(h http.Handler) http.Handler { return auth.Middleware(d.DB, d.SecretKey, h) }
-	_ = authed // разделы подключаются по мере переноса
 
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		if err := d.DB.PingContext(r.Context()); err != nil {
@@ -30,6 +30,7 @@ func New(d Deps) http.Handler {
 		httpx.JSON(w, http.StatusOK, map[string]string{"status": "OK", "service": "api-go"})
 	})
 
+	(&moods.Handler{DB: d.DB, Loc: d.Location}).Register(mux, authed)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { httpx.NotFound(w) })
 	return recoverer(logRequests(mux))
