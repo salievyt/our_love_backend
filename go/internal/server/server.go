@@ -10,13 +10,16 @@ import (
 	"github.com/salievyt/our_love_backend/go/internal/auth"
 	"github.com/salievyt/our_love_backend/go/internal/dates"
 	"github.com/salievyt/our_love_backend/go/internal/httpx"
+	"github.com/salievyt/our_love_backend/go/internal/media"
 	"github.com/salievyt/our_love_backend/go/internal/moods"
+	"github.com/salievyt/our_love_backend/go/internal/places"
 )
 
 type Deps struct {
 	DB        *sql.DB
 	SecretKey string
 	Location  *time.Location
+	MediaRoot string // загрузки, общий с Django том MEDIA_ROOT
 }
 
 func New(d Deps) http.Handler {
@@ -33,6 +36,10 @@ func New(d Deps) http.Handler {
 
 	(&moods.Handler{DB: d.DB, Loc: d.Location}).Register(mux, authed)
 	(&dates.Handler{DB: d.DB, Loc: d.Location}).Register(mux, authed)
+	(&places.Handler{
+		DB: d.DB, Loc: d.Location,
+		Signer: media.NewSigner(d.SecretKey), Store: media.Storage{Root: d.MediaRoot},
+	}).Register(mux, authed)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { httpx.NotFound(w) })
 	return recoverer(logRequests(mux))

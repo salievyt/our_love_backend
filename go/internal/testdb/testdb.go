@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -24,9 +25,10 @@ import (
 const Secret = "test-key-for-local-test-run-only-32b"
 
 type Env struct {
-	t   *testing.T
-	DB  *sql.DB
-	srv http.Handler
+	t         *testing.T
+	DB        *sql.DB
+	MediaRoot string // временный MEDIA_ROOT теста
+	srv       http.Handler
 }
 
 // New открывает TEST_DATABASE_URL и очищает пользователей (каскадно — все их данные).
@@ -45,7 +47,9 @@ func New(t *testing.T) *Env {
 		t.Fatal(err)
 	}
 	loc, _ := time.LoadLocation("Europe/Moscow")
-	return &Env{t: t, DB: db, srv: server.New(server.Deps{DB: db, SecretKey: Secret, Location: loc})}
+	media := t.TempDir()
+	return &Env{t: t, DB: db, MediaRoot: media,
+		srv: server.New(server.Deps{DB: db, SecretKey: Secret, Location: loc, MediaRoot: media})}
 }
 
 func (e *Env) CreateUser(username string) string {
@@ -115,8 +119,38 @@ func (e *Env) Do(method, path, userID string, body any) Response {
 		raw, _ := json.Marshal(body)
 		rd = bytes.NewReader(raw)
 	}
-	req := httptest.NewRequest(method, path, rd)
-	req.Header.Set("Content-Type", "application/json")
+	return e.send(method, path, userID, "application/json", rd)
+}
+
+// File — файл для DoMultipart.
+type File struct {
+	Name string
+	Data []byte
+}
+
+// DoMultipart отправляет multipart/form-data, как мобильные клиенты.
+func (e *Env) DoMultipart(method, path, userID string, fields map[string]string, files map[string]File) Response {
+	e.t.Helper()
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	for k, v := range fields {
+		mw.WriteField(k, v)
+	}
+	for k, f := range files {
+		fw, err := mw.CreateFormFile(k, f.Name)
+		if err != nil {
+			e.t.Fatal(err)
+		}
+		fw.Write(f.Data)
+	}
+	mw.Close()
+	return e.send(method, path, userID, mw.FormDataContentType(), &body)
+}
+
+func (e *Env) send(method, path, userID, contentType string, body io.Reader) Response {
+	e.t.Helper()
+	req := httptest.NewRequest(method, path, body)
+	req.Header.Set("Content-Type", contentType)
 	if userID != "" {
 		req.Header.Set("Authorization", "Bearer "+Token(userID))
 	}

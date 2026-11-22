@@ -44,9 +44,10 @@ func run() error {
 	}
 	defer conn.Close()
 
+	deps := server.Deps{DB: conn, SecretKey: cfg.SecretKey, Location: cfg.Location, MediaRoot: cfg.MediaRoot}
 	srv := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           server.New(server.Deps{DB: conn, SecretKey: cfg.SecretKey, Location: cfg.Location}),
+		Handler:           server.New(deps),
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      30 * time.Second,

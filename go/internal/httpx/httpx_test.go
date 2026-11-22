@@ -2,6 +2,8 @@ package httpx
 
 import (
 	"bytes"
+	"encoding/json"
+	"math"
 	"mime/multipart"
 	"net/http/httptest"
 	"strings"
@@ -98,7 +100,7 @@ func TestPayloadFile(t *testing.T) {
 		t.Fatalf("text value accepted as file: %v", p.Errors)
 	}
 
-	r = httptest.NewRequest("PATCH", "/", strings.NewReader(`{"photo": null, "other": "x"}`))
+	r = httptest.NewRequest("PATCH", "/", strings.NewReader(`{"photo": null, "other": "x", "blank": ""}`))
 	r.Header.Set("Content-Type", "application/json")
 	if p, err = DecodePayload(r); err != nil {
 		t.Fatal(err)
@@ -106,8 +108,42 @@ func TestPayloadFile(t *testing.T) {
 	if fh, ok := p.File("photo"); !ok || fh != nil {
 		t.Fatal("null must clear the file")
 	}
-	if _, ok := p.File("other"); ok || len(p.Errors["other"]) != 1 {
-		t.Fatal("string accepted as file")
+	for _, key := range []string{"other", "blank"} {
+		if _, ok := p.File(key); ok || len(p.Errors[key]) != 1 {
+			t.Fatalf("JSON string %s accepted as file", key)
+		}
+	}
+}
+
+// Эталон — json.dumps([55.0, 1e16, 1.5e-05, 0.0001, 37.6173, -0.0, 123456789012345.6]) в Python.
+func TestFloatMatchesPython(t *testing.T) {
+	in := []Float{55.0, 1e16, 1.5e-05, 0.0001, 37.6173, Float(math.Copysign(0, -1)), 123456789012345.6}
+	got, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "[55.0,1e+16,1.5e-05,0.0001,37.6173,-0.0,123456789012345.6]"; string(got) != want {
+		t.Fatalf("got %s, want %s", got, want)
+	}
+}
+
+func TestPayloadFloat(t *testing.T) {
+	r := httptest.NewRequest("POST", "/", strings.NewReader(
+		`{"a": 55.75, "b": " -37.5 ", "c": "1e3", "d": "abc", "e": "nan", "f": "1e400", "g": true, "h": "0x10", "i": null}`))
+	r.Header.Set("Content-Type", "application/json")
+	p, err := DecodePayload(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]float64{"a": 55.75, "b": -37.5, "c": 1000} {
+		if f, ok := p.Float(key, true); !ok || f != want {
+			t.Errorf("%s = %v %v", key, f, ok)
+		}
+	}
+	for _, key := range []string{"d", "e", "f", "g", "h", "i", "missing"} {
+		if _, ok := p.Float(key, true); ok || len(p.Errors[key]) != 1 {
+			t.Errorf("%s accepted: %v", key, p.Errors[key])
+		}
 	}
 }
 

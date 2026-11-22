@@ -27,6 +27,7 @@ const (
 type Payload struct {
 	values map[string]any
 	files  map[string][]*multipart.FileHeader
+	form   bool // multipart или urlencoded: "" там значит «пусто» (html input в DRF)
 	Errors FieldErrors
 }
 
@@ -62,6 +63,7 @@ func DecodePayload(r *http.Request) (*Payload, error) {
 			p.values[k] = v[0]
 		}
 		p.files = r.MultipartForm.File
+		p.form = true
 	case "application/x-www-form-urlencoded":
 		r.Body = http.MaxBytesReader(nil, r.Body, maxBody)
 		if err := r.ParseForm(); err != nil {
@@ -70,6 +72,7 @@ func DecodePayload(r *http.Request) (*Payload, error) {
 		for k, v := range r.PostForm {
 			p.values[k] = v[0]
 		}
+		p.form = true
 	default:
 		return nil, fmt.Errorf("Неподдерживаемый тип данных «%s» в запросе.", ct)
 	}
@@ -91,7 +94,7 @@ func (p *Payload) Has(key string) bool {
 // File читает поле-файл (FileField/ImageField с null=True, blank=True).
 // present=false — поля нет в запросе (или ошибка в p.Errors);
 // present=true и fh=nil — файл явно очищают: null в JSON или пустая строка в форме
-// (DRF превращает "" в None при allow_null).
+// (DRF превращает "" из формы в None при allow_null; "" в JSON — ошибка).
 func (p *Payload) File(key string) (fh *multipart.FileHeader, present bool) {
 	if fs := p.files[key]; len(fs) > 0 {
 		return fs[0], true
@@ -100,7 +103,7 @@ func (p *Payload) File(key string) (fh *multipart.FileHeader, present bool) {
 	if !ok {
 		return nil, false
 	}
-	if v == nil || v == "" {
+	if v == nil || (p.form && v == "") {
 		return nil, true
 	}
 	p.Errors.Add(key, "Загруженный файл не является корректным файлом.")
