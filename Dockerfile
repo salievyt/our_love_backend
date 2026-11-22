@@ -20,7 +20,9 @@ RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . .
 
 # Collect static files
-RUN python manage.py collectstatic --noinput
+# collectstatic не ходит в БД; ключ нужен только чтобы импортировать настройки при сборке
+RUN SECRET_KEY=build-only-collectstatic-key-not-used-at-runtime DB_PASSWORD=unused \
+    python manage.py collectstatic --noinput
 
 EXPOSE 8000
 

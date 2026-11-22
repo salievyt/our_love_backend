@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:16-alpine
@@ -8,9 +6,10 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-outlove}
       - POSTGRES_USER=${DB_USER:-outlove}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-outlove_secret}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+    # Только с этой машины (для psql / IDE); снаружи порт закрыт
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U outlove"]
       interval: 5s
@@ -19,8 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # Порт не публикуется: Redis нужен только контейнерам внутри сети compose
     volumes:
       - redis_data:/data
     healthcheck:
@@ -43,19 +41,20 @@ services:
       - CSRF_TRUSTED_ORIGINS=${CSRF_TRUSTED_ORIGINS:-http://localhost:8000,http://localhost,http://localhost:3000,http://dev.phantom-ink.online,https://dev.phantom-ink.online}
       - DB_NAME=${DB_NAME:-outlove}
       - DB_USER=${DB_USER:-outlove}
-      - DB_PASSWORD=${DB_PASSWORD:-outlove_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:8080,http://localhost:80,http://localhost:8000,https://dev.phantom-ink.online}
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:?Задайте SECRET_KEY в .env}
+      - DEBUG=${DEBUG:-False}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - AWS_STORAGE_BUCKET_NAME=${AWS_STORAGE_BUCKET_NAME:-}
       - AWS_S3_REGION_NAME=${AWS_S3_REGION_NAME:-eu-central-1}
+    # Снаружи API доступен только через nginx (:80); 8000 — для локальной отладки
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -77,10 +76,11 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings
       - DB_NAME=${DB_NAME:-outlove}
       - DB_USER=${DB_USER:-outlove}
-      - DB_PASSWORD=${DB_PASSWORD:-outlove_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?Задайте SECRET_KEY в .env}
     depends_on:
       db:
         condition: service_healthy
@@ -98,10 +98,11 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings
       - DB_NAME=${DB_NAME:-outlove}
       - DB_USER=${DB_USER:-outlove}
-      - DB_PASSWORD=${DB_PASSWORD:-outlove_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
       - DB_HOST=db
       - DB_PORT=5432
       - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=${SECRET_KEY:?Задайте SECRET_KEY в .env}
     depends_on:
       db:
         condition: service_healthy
