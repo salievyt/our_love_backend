@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/salievyt/our_love_backend/go/internal/auth"
+	"github.com/salievyt/our_love_backend/go/internal/dates"
 	"github.com/salievyt/our_love_backend/go/internal/httpx"
 	"github.com/salievyt/our_love_backend/go/internal/moods"
 )
@@ -31,6 +32,7 @@ func New(d Deps) http.Handler {
 	})
 
 	(&moods.Handler{DB: d.DB, Loc: d.Location}).Register(mux, authed)
+	(&dates.Handler{DB: d.DB, Loc: d.Location}).Register(mux, authed)
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { httpx.NotFound(w) })
 	return recoverer(logRequests(mux))
