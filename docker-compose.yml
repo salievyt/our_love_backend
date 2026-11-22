@@ -79,8 +79,7 @@ services:
       - PORT=8080
       - MEDIA_ROOT=/app/media
     # Тот же том, что у Django: Go сохраняет загрузки, Django их раздаёт.
-    # Go работает как nonroot (65532) — каталог places/ должен быть ему доступен
-    # на запись (см. go/README.md, «Загрузки»).
+    # Go работает как nonroot (65532); права на places/ выдаёт media-perms.
     volumes:
       - media_volume:/app/media
     expose:
@@ -90,6 +89,16 @@ services:
         condition: service_healthy
       api:
         condition: service_started  # схему создают миграции Django в сервисе api
+      media-perms:
+        condition: service_completed_successfully
+
+  # Разово выдаёт Go-сервису (uid 65532) права на запись в каталоги, куда он сохраняет файлы
+  media-perms:
+    image: busybox:1.37
+    command: sh -c "mkdir -p /app/media/places && chown 65532:65532 /app/media/places"
+    volumes:
+      - media_volume:/app/media
+    restart: "no"
 
   celery_worker:
     build:

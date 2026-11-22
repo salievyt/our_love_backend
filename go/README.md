@@ -76,11 +76,8 @@ HMAC-SHA256 с ключом `sha256("media-linksigner" + SECRET_KEY)`, urlsafe b
 Заменённое или удалённое фото остаётся на диске — как в Django.
 
 **Права на том.** Контейнер Go работает как `nonroot` (uid 65532), а Django пишет в
-том от root. Перед первым запуском дайте Go каталог для записи:
-
-```bash
-docker compose exec api sh -c 'mkdir -p /app/media/places && chown 65532:65532 /app/media/places'
-```
+том от root. Права на `places/` выдаёт разовый сервис `media-perms` в `docker-compose.yml`
+перед стартом `api-go`; новый каталог для загрузок нужно добавить в его команду.
 
 ## Запуск
 
