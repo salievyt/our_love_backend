@@ -14,7 +14,9 @@ import (
 func JSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false) // "&" в ссылках как у DRF, а не "&"
+	_ = enc.Encode(v)
 }
 
 // Error — ошибка вида {"detail": "..."}.
