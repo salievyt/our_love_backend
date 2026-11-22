@@ -3,6 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -13,8 +14,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env.read_env(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = env("SECRET_KEY", default="change-me-in-production")
+# Без значения по умолчанию: известный ключ позволяет подделать JWT любого пользователя
+SECRET_KEY = env("SECRET_KEY")
 DEBUG = env("DEBUG")
+
+if SECRET_KEY.startswith("change-me") or len(SECRET_KEY) < 32:
+    raise ImproperlyConfigured(
+        "SECRET_KEY не задан или слишком простой. Сгенерируйте ключ: "
+        "python -c \"import secrets; print(secrets.token_urlsafe(50))\""
+    )
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "api"])
 
 # Application definition
@@ -93,7 +101,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": env("DB_NAME", default="outlove"),
         "USER": env("DB_USER", default="outlove"),
-        "PASSWORD": env("DB_PASSWORD", default="outlove_secret"),
+        "PASSWORD": env("DB_PASSWORD"),
         "HOST": env("DB_HOST", default="db"),
         "PORT": env("DB_PORT", default="5432"),
     }
