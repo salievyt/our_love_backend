@@ -2,10 +2,12 @@ import uuid
 
 from django.db import models
 
+from config.uploads import IMAGE_VALIDATORS, UploadTo
+
 
 class Photo(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    image = models.ImageField(upload_to="photos/%Y/")
+    image = models.ImageField(upload_to=UploadTo("photos"), validators=IMAGE_VALIDATORS)
     caption = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     year_tag = models.IntegerField(editable=False)
@@ -34,7 +36,9 @@ class Photo(models.Model):
 class Collage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
-    image = models.ImageField(upload_to="collages/", null=True, blank=True)
+    image = models.ImageField(
+        upload_to=UploadTo("collages"), validators=IMAGE_VALIDATORS, null=True, blank=True
+    )
     photos = models.ManyToManyField(Photo, related_name="collages", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

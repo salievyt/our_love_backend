@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+from config.uploads import IMAGE_VALIDATORS, UploadTo
+
 
 class DiaryEntry(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -14,7 +16,9 @@ class DiaryEntry(models.Model):
     )
     date = models.DateField()
     note = models.TextField(blank=True)
-    photo = models.ImageField(upload_to="diary/", null=True, blank=True)
+    photo = models.ImageField(
+        upload_to=UploadTo("diary"), validators=IMAGE_VALIDATORS, null=True, blank=True
+    )
     mood_partner1 = models.IntegerField(null=True, blank=True)
     mood_partner2 = models.IntegerField(null=True, blank=True)
     question_answer_partner1 = models.ForeignKey(

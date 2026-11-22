@@ -2,13 +2,19 @@ import uuid
 
 from django.db import models
 
+from config.uploads import AUDIO_VALIDATORS, IMAGE_VALIDATORS, UploadTo
+
 
 class TimeCapsule(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
     message = models.TextField()
-    photo = models.ImageField(upload_to="capsules/", null=True, blank=True)
-    voice_note = models.FileField(upload_to="capsules/voice/", null=True, blank=True)
+    photo = models.ImageField(
+        upload_to=UploadTo("capsules"), validators=IMAGE_VALIDATORS, null=True, blank=True
+    )
+    voice_note = models.FileField(
+        upload_to=UploadTo("capsules/voice"), validators=AUDIO_VALIDATORS, null=True, blank=True
+    )
     open_date = models.DateField()
     is_opened = models.BooleanField(default=False)
     opened_at = models.DateTimeField(null=True, blank=True)

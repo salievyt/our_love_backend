@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+from config.uploads import IMAGE_VALIDATORS, UploadTo
+
 
 class TaskTemplate(models.Model):
     title = models.CharField(max_length=200)
@@ -30,7 +32,9 @@ class DailyTask(models.Model):
     emoji = models.CharField(max_length=10, default="🎯")
     is_completed = models.BooleanField(default=False)
     completed_at = models.DateTimeField(null=True, blank=True)
-    photo = models.ImageField(upload_to="task_photos/", null=True, blank=True)
+    photo = models.ImageField(
+        upload_to=UploadTo("task_photos"), validators=IMAGE_VALIDATORS, null=True, blank=True
+    )
     date_assigned = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 

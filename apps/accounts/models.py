@@ -5,10 +5,14 @@ from typing import Optional
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+from config.uploads import IMAGE_VALIDATORS, UploadTo
+
 
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    avatar = models.ImageField(
+        upload_to=UploadTo("avatars"), validators=IMAGE_VALIDATORS, blank=True, null=True
+    )
     phone = models.CharField(max_length=20, blank=True)
 
     class Meta:
@@ -82,7 +86,13 @@ class PartnerProfile(models.Model):
     city = models.CharField("Город", max_length=100, blank=True, db_index=True)
     birth_date = models.DateField("Дата рождения", null=True, blank=True)
     gender = models.CharField("Пол", max_length=10, choices=GENDER_CHOICES, blank=True)
-    photo = models.ImageField("Фото", upload_to="partner_profiles/", blank=True, null=True)
+    photo = models.ImageField(
+        "Фото",
+        upload_to=UploadTo("partner_profiles"),
+        validators=IMAGE_VALIDATORS,
+        blank=True,
+        null=True,
+    )
     is_active = models.BooleanField("Анкета опубликована", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

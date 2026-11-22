@@ -2,6 +2,8 @@ import uuid
 
 from django.db import models
 
+from config.uploads import IMAGE_VALIDATORS, UploadTo
+
 
 class Place(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -10,7 +12,9 @@ class Place(models.Model):
     emoji = models.CharField(max_length=10, default="❤️")
     latitude = models.FloatField()
     longitude = models.FloatField()
-    photo = models.ImageField(upload_to="places/", null=True, blank=True)
+    photo = models.ImageField(
+        upload_to=UploadTo("places"), validators=IMAGE_VALIDATORS, null=True, blank=True
+    )
     created_by = models.ForeignKey(
         "accounts.User", on_delete=models.SET_NULL, null=True, blank=True
     )
